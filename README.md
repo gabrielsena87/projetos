@@ -189,10 +189,5 @@ teste.py               Utilitário local de leitura de artefatos
 workspace/             Cache, modelos e relatórios gerados
 ```
 
-## Observações sobre o GitHub
 
-Arquivos gerados durante o treinamento podem ser grandes e não devem ser versionados indiscriminadamente. Em particular, `dinov2_best.pt` pode ultrapassar o limite de 100 MB do GitHub. Para compartilhar checkpoints grandes, use Git LFS ou publique o arquivo em um armazenamento de artefatos e mantenha no repositório apenas as instruções de download.
 
-## Licença e dados
-
-Verifique a licença e as condições de uso do dataset e dos pesos pré-treinados do DINOv2 antes de redistribuí-los. Este repositório contém código de pesquisa e experimentação; valide o desempenho em dados independentes antes de usar o modelo em produção.
