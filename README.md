@@ -154,16 +154,22 @@ Se o Windows apresentar `WinError 1455` durante a validação cruzada, altere `n
 - `pca_results.csv`: comparação das variâncias do PCA.
 - `confusion_matrix.png`: matriz de confusão.
 - `explained_variance.png`: variância acumulada do PCA.
+- `prediction_6_classes_novo_modelo.png`: painel com seis imagens classificadas.
 
 ## Resultado de referência
 
 Em uma execução com 893 imagens válidas, o pipeline produziu:
 
-- Acurácia média da validação cruzada: `98,88%`
-- Acurácia global: `98,88%`
-- Cohen's Kappa: `0,9860`
+- Acurácia média da validação cruzada: `99,10%`
+- Acurácia global: `99,10%`
 
 Esses valores dependem da versão das bibliotecas, do hardware, do estado do dataset e dos parâmetros usados.
+
+### Exemplo de inferência
+
+O painel abaixo mostra seis imagens do dataset, a classe real, a classe prevista e a probabilidade atribuída pelo modelo. Cinco classes estão representadas; a sexta imagem repete `Circuit Breakers` para facilitar a comparação visual.
+
+![Painel com seis imagens classificadas](workspace/reports/prediction_6_classes_novo_modelo.png)
 
 ## Inferência com o modelo salvo
 
@@ -176,6 +182,18 @@ predictor = Predictor("workspace/models")
 classe, probabilidade = predictor.predict("caminho/para/imagem.jpg")
 print(f"Classe: {classe}")
 print(f"Probabilidade: {probabilidade:.2%}")
+```
+
+Também é possível usar o script de teste diretamente no terminal:
+
+```powershell
+.\.venv\Scripts\python.exe .\testar_predictor.py "caminho\para\imagem.jpg"
+```
+
+Se o caminho não for informado, o script solicitará a imagem interativamente:
+
+```powershell
+.\.venv\Scripts\python.exe .\testar_predictor.py
 ```
 
 A imagem deve ser acessível pelo caminho informado e estar em um formato suportado pelo Pillow.
