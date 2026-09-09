@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard de resultados</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #172033; }
+    h1 { color: #1d4ed8; }
+    img { max-width: 100%; border: 1px solid #dbe3f0; border-radius: 8px; }
+    table { border-collapse: collapse; margin: 20px 0; min-width: 680px; }
+    th, td { border: 1px solid #dbe3f0; padding: 8px 12px; text-align: right; }
+    th { background: #eff6ff; }
+    td:first-child, th:first-child { text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard de Resultados</h1>
+  <p>Resultados consolidados do pipeline de classificação de equipamentos elétricos.</p>
+  <img src="dashboard.png" alt="Gráficos de resultados do pipeline">
+  <h2>Resumo das métricas</h2>
+  <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>accuracy</th>
+      <td>0.9810</td>
+      <td>0.9810</td>
+      <td>0.9810</td>
+      <td>0.9810</td>
+    </tr>
+    <tr>
+      <th>macro avg</th>
+      <td>0.9821</td>
+      <td>0.9809</td>
+      <td>0.9814</td>
+      <td>893.0000</td>
+    </tr>
+    <tr>
+      <th>weighted avg</th>
+      <td>0.9811</td>
+      <td>0.9810</td>
+      <td>0.9810</td>
+      <td>893.0000</td>
+    </tr>
+  </tbody>
+</table>
+  <h2>Métricas por classe</h2>
+  <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Circuit Breakers</th>
+      <td>0.9659</td>
+      <td>0.9754</td>
+      <td>0.9706</td>
+    </tr>
+    <tr>
+      <th>Disconnectors</th>
+      <td>0.9832</td>
+      <td>0.9778</td>
+      <td>0.9805</td>
+    </tr>
+    <tr>
+      <th>Power Transformers</th>
+      <td>0.9830</td>
+      <td>0.9830</td>
+      <td>0.9830</td>
+    </tr>
+    <tr>
+      <th>Surge Arresters</th>
+      <td>0.9783</td>
+      <td>0.9945</td>
+      <td>0.9863</td>
+    </tr>
+    <tr>
+      <th>Wave Traps</th>
+      <td>1.0000</td>
+      <td>0.9739</td>
+      <td>0.9868</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>
