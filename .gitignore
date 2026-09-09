@@ -1,0 +1,17 @@
+# Ambientes e caches locais
+.venv/
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Artefatos gerados pelo pipeline
+workspace/features/
+workspace/cleaned/
+workspace/extracted/
+workspace/raw/
+workspace/models/dinov2_best.pt
+
+# Arquivos temporarios
+.DS_Store
