@@ -1,140 +1,224 @@
-# Thermal Vision AI: Classificação de Equipamentos Elétricos por Imagens Térmicas
+# Thermal Vision AI 🔥
 
-Pipeline de visão computacional para classificar cinco tipos de equipamentos elétricos a partir de imagens térmicas. O projeto combina embeddings visuais do DINOv2, descritores locais SIFT e um ensemble de classificadores tradicionais do scikit-learn.
+### Classificação inteligente de equipamentos elétricos em imagens térmicas
 
-O fluxo atual usa o DINOv2 `dinov2_vitb14` como extrator profundo e concatena seu embedding com o descritor SIFT. O modelo salvo é um `StackingClassifier` formado por KNN, Random Forest, SVM e regressão logística.
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![scikit--learn](https://img.shields.io/badge/scikit-learn-1.0%2B-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Status](https://img.shields.io/badge/status-active%20development-2EA44F)](https://github.com/gabrielsena87/projetos)
+[![Licença](https://img.shields.io/badge/licenca-MIT-2EA44F)](LICENSE)
 
-## Classes
+O **Thermal Vision AI** transforma imagens infravermelhas em uma classificação objetiva de equipamentos elétricos. O pipeline combina a representação visual do **DINOv2**, descritores locais **SIFT** e um ensemble de modelos clássicos para reconhecer cinco categorias de ativos.
 
-O dataset utilizado contém estas classes:
+Em outras palavras: a imagem entra quente, o vetor de características faz o trabalho pesado e o modelo devolve uma classe com probabilidade. ⚡
 
-- Circuit Breakers
-- Disconnectors
-- Power Transformers
-- Surge Arresters
-- Wave Traps
+## Por que este projeto é especial? ✨
 
-## Visão geral do pipeline
+Porque ele não depende de uma única lente para enxergar o problema. O DINOv2 captura contexto e semântica visual; o SIFT preserva pistas locais e geométricas; o stacking combina classificadores com comportamentos diferentes. Essa composição torna o pipeline mais explícito, auditável e fácil de experimentar do que uma caixa-preta isolada.
 
-1. Localiza o dataset e cria a estrutura de trabalho em `workspace/`.
-2. Verifica a integridade das imagens e ignora arquivos corrompidos.
-3. Normaliza as imagens para RGB e cria `workspace/cleaned/metadata.csv`.
-4. Extrai características visuais:
-  - DINOv2 `dinov2_vitb14`: embedding de 768 dimensões.
-  - SIFT: descritor médio de 128 dimensões.
-  - Vetor híbrido final: 896 dimensões.
-5. Padroniza os atributos e remove atributos sem variação.
-6. Seleciona os melhores atributos com `SelectKBest` e informação mútua.
-7. Usa PCA para preservar a variância mais relevante.
-8. Treina um `StackingClassifier` com KNN, Random Forest, SVM e regressão logística.
-9. Executa validação cruzada estratificada com cinco divisões.
-10. Salva o modelo final, métricas e gráficos em `workspace/models/` e `workspace/reports/`.
+O projeto também separa as etapas de dados, extração, otimização e inferência. Assim, cada decisão pode ser inspecionada, reproduzida e melhorada sem desmontar o restante do sistema.
+
+## Resultado de referência 📊
+
+Em uma execução com **893 imagens válidas**, foram observados:
+
+| Métrica | Resultado | Observação |
+| --- | ---: | --- |
+| Acurácia média na validação cruzada | 99,10% | 5 divisões estratificadas |
+| Acurácia global | 99,10% | Predições out-of-fold |
+| Cohen's Kappa | 0,9887 | Medida de concordância |
+| F1 macro | 0,9910 | Média equilibrada entre classes |
+
+Esses números são uma referência do conjunto disponível, não uma garantia universal. Eles podem variar com a versão das dependências, o hardware, o dataset e o estado dos artefatos em cache.
+
+## Classes reconhecidas
+
+- `Circuit Breakers`
+- `Disconnectors`
+- `Power Transformers`
+- `Surge Arresters`
+- `Wave Traps`
+
+## Arquitetura técnica 🧠
+
+```text
+Imagem térmica (JPG / JPEG / PNG)
+                │
+                ▼
+┌──────────────────────────────────────┐
+│ DataManager                           │
+│ valida, converte RGB e cria metadata  │
+└──────────────────┬───────────────────┘
+                   ▼
+┌──────────────────────────────────────┐
+│ FeatureExtractor                      │
+│ SIFT (128) + DINOv2 ViT-B/14 (768)    │
+│ vetor híbrido: 896 dimensões          │
+└──────────────────┬───────────────────┘
+                   ▼
+┌──────────────────────────────────────┐
+│ PipelineOptimizer                     │
+│ StandardScaler → VarianceThreshold    │
+│ → SelectKBest → PCA                   │
+└──────────────────┬───────────────────┘
+                   ▼
+┌──────────────────────────────────────┐
+│ StackingClassifier                    │
+│ KNN + Random Forest + SVM             │
+│ meta-modelo: Logistic Regression      │
+└──────────────────┬───────────────────┘
+                   ▼
+Classe prevista + probabilidade + relatórios
+```
+
+### Componentes
+
+| Componente | Tecnologia | Responsabilidade |
+| --- | --- | --- |
+| Ingestão | Python, Pillow, pandas | Validar imagens e gerar `metadata.csv` |
+| Embedding profundo | PyTorch, DINOv2 ViT-B/14 | Extrair 768 características visuais |
+| Descritor local | OpenCV SIFT | Extrair 128 características locais médias |
+| Engenharia de atributos | scikit-learn | Escalonamento, seleção e PCA |
+| Classificação | KNN, Random Forest, SVM, Logistic Regression | Produzir a decisão final por stacking |
+| Persistência | NumPy, joblib, JSON | Salvar features, modelo e configuração |
+| Relatórios | pandas, Matplotlib, Seaborn, HTML | Registrar métricas e visualizações |
+
+## Estrutura do projeto
+
+```text
+.
+├── VIT.py                         # Pipeline principal e classe Predictor
+├── vit_dinov2.py                  # DINOv2, embeddings e fine-tuning
+├── testar_predictor.py            # Inferência de uma imagem
+├── testar_6_imagens.py            # Geração de painel de inferência
+├── relatorio.py                   # Leitura de artefatos do modelo
+├── teste.py                       # Utilitário local de inspeção
+├── Infrared Power Equipment Dataset/  # Dataset organizado por classe
+├── workspace/
+│   ├── cleaned/                   # Imagens válidas e metadata.csv
+│   ├── features/                  # X.npy e y.npy
+│   ├── models/                    # Modelo, classes e configuração
+│   └── reports/                   # CSVs, gráficos e dashboard
+└── README.md
+```
 
 ## Requisitos
 
-- Windows 10 ou 11
+- Windows 10/11 ou Linux
 - Python 3.12
-- GPU NVIDIA recomendada para acelerar o DINOv2
-- Driver NVIDIA instalado
-- Dataset organizado em subpastas por classe
-- Aproximadamente 5 GB livres para dependências, cache e artefatos
+- 8 GB de RAM; 16 GB ou mais é recomendado
+- GPU NVIDIA com driver atualizado é recomendada, mas CPU é suportada
+- Cerca de 5 GB livres para dependências, cache do Torch Hub e artefatos
+- Acesso à internet na primeira execução para baixar o DINOv2, caso ele não esteja em cache
 
-A CPU também pode executar o pipeline, mas a extração de embeddings será significativamente mais lenta.
+## Instalação 🚀
 
-## Instalação
+### 1. Obter o projeto e criar o ambiente
 
-Abra o PowerShell na raiz do projeto:
+No PowerShell:
 
 ```powershell
 Set-Location "D:\hd_central\projetos"
-```
-
-Crie ou use um ambiente virtual:
-
-```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 ```
 
-Instale o PyTorch com CUDA e as demais dependências:
+### 2. Instalar o PyTorch
+
+Para uma GPU compatível com CUDA 12.8:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-.\.venv\Scripts\python.exe -m pip install numpy pandas pillow opencv-python matplotlib seaborn scikit-learn joblib
+.\.venv\Scripts\python.exe -m pip install torch torchvision torchaudio `
+  --index-url https://download.pytorch.org/whl/cu128
 ```
 
-A versão CUDA do PyTorch deve ser compatível com a capacidade da GPU e com o driver instalado. O driver fornece a compatibilidade de execução; não é necessário instalar o CUDA Toolkit completo para executar esta aplicação com as wheels oficiais do PyTorch.
-
-## Verificar o ambiente
+Para CPU, use as wheels padrão:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+.\.venv\Scripts\python.exe -m pip install torch torchvision torchaudio
 ```
 
-Exemplo de saída esperada:
+### 3. Instalar as dependências do projeto
 
-```text
-2.11.0+cu128
-True
-NVIDIA GeForce GTX 1650
+```powershell
+.\.venv\Scripts\python.exe -m pip install `
+  numpy pandas pillow opencv-python matplotlib seaborn `
+  scikit-learn joblib tqdm
 ```
 
-## Dataset
+### 4. Validar o ambiente
 
-Por padrão, o caminho do dataset é configurado em `VIT.py`:
+```powershell
+.\.venv\Scripts\python.exe -c "import torch; print('PyTorch:', torch.__version__); print('CUDA:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+O driver NVIDIA é suficiente para as wheels oficiais do PyTorch; não é obrigatório instalar o CUDA Toolkit completo.
+
+## Dataset 🗂️
+
+O caminho padrão está configurado em `Config.dataset_dir`, no arquivo `VIT.py`:
 
 ```python
 dataset_dir: Path = Path(r"D:\hd_central\projetos\Infrared Power Equipment Dataset")
 ```
 
-A estrutura esperada é:
+Organize as imagens desta forma:
 
 ```text
 Infrared Power Equipment Dataset/
-  Circuit Breakers/
-  Disconnectors/
-  Power Transformers/
-  Surge Arresters/
-  Wave Traps/
+├── Circuit Breakers/
+├── Disconnectors/
+├── Power Transformers/
+├── Surge Arresters/
+└── Wave Traps/
 ```
 
-Cada pasta deve conter imagens `.jpg`, `.jpeg` ou `.png`. O programa verifica cada imagem antes de copiá-la para a área limpa.
+São aceitos arquivos `.jpg`, `.jpeg` e `.png`. Cada imagem é verificada, convertida para RGB e copiada para `workspace/cleaned/` antes da extração.
 
-## Executar o pipeline
+## Uso
 
-Use `-u` para que os logs apareçam imediatamente no terminal:
+### Treinar o pipeline híbrido
 
 ```powershell
 Set-Location "D:\hd_central\projetos"
 .\.venv\Scripts\python.exe -u .\VIT.py
 ```
 
-Para visualizar e salvar os logs ao mesmo tempo:
+Para acompanhar os logs e salvar uma cópia:
 
 ```powershell
-.\.venv\Scripts\python.exe -u .\VIT.py 2>&1 | Tee-Object -FilePath .\pipeline.log
+.\.venv\Scripts\python.exe -u .\VIT.py 2>&1 |
+  Tee-Object -FilePath .\pipeline.log
 ```
 
-O primeiro carregamento do DINOv2 pode baixar o backbone e armazená-lo no cache local do Torch Hub. Nas próximas execuções, o cache será reutilizado. É necessário acesso à internet na primeira execução, salvo quando o modelo já estiver disponível no cache.
+O processo valida o dataset, extrai as features, otimiza `SelectKBest` e PCA, treina o ensemble, calcula a validação cruzada e salva o modelo final.
 
-## Avisos esperados
+### Inferir uma imagem em Python
 
-Mensagens como estas não indicam falha:
+```python
+from VIT import Predictor
 
-```text
-Using cache found in ...torch\hub\facebookresearch_dinov2_main
-UserWarning: xFormers is not available
+predictor = Predictor("workspace/models")
+classe, probabilidade = predictor.predict("caminho/para/imagem.jpg")
+
+print(f"Classe: {classe}")
+print(f"Confiança: {probabilidade:.2%}")
 ```
 
-O aviso sobre `xFormers` significa apenas que algumas otimizações de velocidade e memória não estão disponíveis. O DINOv2 continua funcional.
+### Inferir pelo terminal
 
-Se o Windows apresentar `WinError 1455` durante a validação cruzada, mantenha `n_jobs=1` nas chamadas de `cross_validate` e `cross_val_predict`. O código atual já usa esse valor para limitar o uso de processos e memória virtual.
+```powershell
+.\.venv\Scripts\python.exe .\testar_predictor.py `
+  "caminho\para\imagem.jpg" `
+  --models-dir workspace/models `
+  --save workspace/reports/prediction_{stem}.png
+```
 
-## Fine-tuning do DINOv2
+Use `--show` para abrir o gráfico após a classificação. Sem o caminho da imagem, o script solicita o valor de forma interativa.
 
-O módulo `vit_dinov2.py` também oferece treinamento supervisionado. O `ViTTrainer` faz um split estratificado de 80/20, aplica augmentação no treino e salva o melhor checkpoint em `workspace/models/dinov2_best.pt`.
+### Fine-tuning supervisionado
 
-### Fine-tuning completo
+O módulo `vit_dinov2.py` possui `DINOv2Classifier` e `ViTTrainer` para fine-tuning completo ou linear probing. O treinamento usa split estratificado 80/20 e salva o melhor checkpoint em `workspace/models/dinov2_best.pt`.
 
 ```python
 import pandas as pd
@@ -145,120 +229,95 @@ classes = sorted(metadata["label"].unique())
 label_to_idx = {label: index for index, label in enumerate(classes)}
 
 model = DINOv2Classifier(
-  variant="dinov2_vitb14",
-  num_classes=len(classes),
-  freeze_backbone=False,
+    variant="dinov2_vitb14",
+    num_classes=len(classes),
+    freeze_backbone=False,  # True para linear probing
 )
 
 trainer = ViTTrainer(
-  model=model,
-  metadata=metadata,
-  label_to_idx=label_to_idx,
-  epochs=20,
-  batch_size=32,
-  lr=1e-4,
-  save_path="workspace/models",
+    model=model,
+    metadata=metadata,
+    label_to_idx=label_to_idx,
+    epochs=20,
+    batch_size=32,
+    lr=1e-4,
+    save_path="workspace/models",
 )
 history = trainer.train()
 ```
 
-Para linear probing, use `freeze_backbone=True`. Esse checkpoint é separado do `hybrid_stacking_model.joblib`; o `Predictor` documentado nesta página usa o pipeline híbrido salvo.
+O checkpoint de fine-tuning é independente do `hybrid_stacking_model.joblib` usado pelo `Predictor` do pipeline híbrido.
 
 ## Artefatos gerados
 
-### `workspace/cleaned/`
-
-- Imagens válidas convertidas para RGB.
-- `metadata.csv` com caminho e classe de cada imagem.
-
-### `workspace/features/`
-
-- `X.npy`: matriz de características híbridas.
-- `y.npy`: rótulos correspondentes.
-
-### `workspace/models/`
-
-- `class_names.joblib`: nomes das classes.
-- `hybrid_stacking_model.joblib`: pipeline treinado.
-- `pipeline_config.json`: configuração usada na inferência.
-- `dinov2_best.pt`: checkpoint opcional de fine-tuning do DINOv2.
-
-### `workspace/reports/`
-
-- `classification_report.csv`: métricas por classe.
-- `cv_results.csv`: resultados da validação cruzada.
-- `feature_selection_results.csv`: comparação dos valores de `k`.
-- `pca_results.csv`: comparação das variâncias do PCA.
-- `confusion_matrix.png`: matriz de confusão.
-- `explained_variance.png`: variância acumulada do PCA.
-- `dashboard.html` e `dashboard.png`: painel consolidado dos resultados.
-- `prediction_*.png`: gráficos gerados para imagens classificadas.
-
-## Resultado de referência
-
-Em uma execução com 893 imagens válidas, o pipeline produziu:
-
-- Acurácia média da validação cruzada: `99,10%`
-- Acurácia global: `99,10%`
-
-Esses valores dependem da versão das bibliotecas, do hardware, do estado do dataset e dos parâmetros usados.
-
-### Exemplo de inferência
-
-O painel abaixo mostra seis imagens do dataset, a classe real, a classe prevista e a probabilidade atribuída pelo modelo. Cinco classes estão representadas; a sexta imagem repete `Circuit Breakers` para facilitar a comparação visual.
-
-![Painel com seis imagens classificadas](workspace/reports/prediction_6_classes_novo_modelo.png)
-
-## Inferência com o modelo salvo
-
-Depois de executar o treinamento, a classe `Predictor` em `VIT.py` pode carregar o pipeline persistido e classificar uma nova imagem:
-
-```python
-from VIT import Predictor
-
-predictor = Predictor("workspace/models")
-classe, probabilidade = predictor.predict("caminho/para/imagem.jpg")
-print(f"Classe: {classe}")
-print(f"Probabilidade: {probabilidade:.2%}")
-```
-
-Também é possível usar o script de teste diretamente no terminal:
-
-```powershell
-.\.venv\Scripts\python.exe .\testar_predictor.py "caminho\para\imagem.jpg"
-```
-
-O script aceita opções para escolher a pasta do modelo, salvar o gráfico em outro caminho e abrir a janela da imagem:
-
-```powershell
-.\.venv\Scripts\python.exe .\testar_predictor.py `
-  "caminho\para\imagem.jpg" `
-  --models-dir workspace/models `
-  --save workspace/reports/prediction_{stem}.png `
-  --show
-```
-
-Se o caminho não for informado, o script solicitará a imagem interativamente:
-
-```powershell
-.\.venv\Scripts\python.exe .\testar_predictor.py
-```
-
-A imagem deve ser acessível pelo caminho informado e estar em um formato suportado pelo Pillow.
+| Caminho | Conteúdo |
+| --- | --- |
+| `workspace/cleaned/metadata.csv` | Caminhos das imagens válidas e seus rótulos |
+| `workspace/features/X.npy` | Matriz de features híbridas |
+| `workspace/features/y.npy` | Rótulos correspondentes |
+| `workspace/models/hybrid_stacking_model.joblib` | Pipeline treinado e persistido |
+| `workspace/models/class_names.joblib` | Ordem das classes usadas na inferência |
+| `workspace/models/pipeline_config.json` | Dimensões e normalização da entrada |
+| `workspace/reports/classification_report.csv` | Precisão, recall e F1 por classe |
+| `workspace/reports/cv_results.csv` | Resultados das divisões da validação cruzada |
+| `workspace/reports/confusion_matrix.png` | Matriz de confusão |
+| `workspace/reports/dashboard.html` | Painel consolidado dos resultados |
 
 ### Cache de features
 
-Se o backbone ou a implementação da extração mudar, remova `workspace/features/X.npy` e `workspace/features/y.npy` antes de treinar novamente. Caso contrário, o pipeline reutilizará o cache existente, mesmo que ele tenha sido gerado com outra configuração.
+Se o backbone ou a implementação da extração mudar, remova `workspace/features/X.npy` e `workspace/features/y.npy` antes de treinar novamente. O pipeline reutiliza esses arquivos quando eles existem.
 
-## Estrutura principal
+## Troubleshooting 🔧
 
-```text
-VIT.py                 Pipeline principal e classificação
-vit_dinov2.py          Backbone DINOv2 e extração de embeddings
-testar_predictor.py    Exemplo de inferência e geração de gráfico
-teste.py               Utilitário local de leitura de artefatos
-workspace/             Cache, modelos e relatórios gerados
-```
+### `CUDA out of memory`
 
+Reduza `batch_size` no `ViTTrainer`, encerre outros processos que usam a GPU ou execute a extração em CPU.
 
+### Download do DINOv2 falha
 
+Verifique a conexão e tente novamente. O Torch Hub mantém o repositório em cache; se o cache estiver corrompido, remova a pasta correspondente e repita a execução.
+
+### `WinError 1455`
+
+O pipeline já usa `n_jobs=1` na validação cruzada para reduzir o consumo de memória virtual no Windows. Evite aumentar esse valor em máquinas com pouca RAM.
+
+### Aviso sobre `xFormers`
+
+`UserWarning: xFormers is not available` indica apenas que certas otimizações não estão instaladas. O DINOv2 continua funcional.
+
+## Contribuição 🤝
+
+Contribuições são bem-vindas, especialmente melhorias de reprodutibilidade, avaliação e desempenho.
+
+1. Faça um fork e crie uma branch descritiva:
+
+   ```powershell
+   git checkout -b feature/nova-avaliacao
+   ```
+
+2. Faça uma alteração pequena e documente decisões relevantes.
+3. Execute os testes ou validações disponíveis antes de abrir o PR.
+4. Atualize o README quando mudar comandos, artefatos ou requisitos.
+5. Abra um Pull Request com contexto, resultados antes/depois e limitações conhecidas.
+
+Exemplos de áreas para evolução:
+
+- API REST com FastAPI ou interface com Streamlit;
+- suporte a mais backbones, como EfficientNet e ConvNeXt;
+- quantização FP16/INT8 e otimização para edge;
+- mapas de atenção e explicabilidade;
+- testes automatizados para ingestão, cache e inferência.
+
+## Licença 📄
+
+Este projeto é distribuído sob a **MIT License**. Consulte o arquivo [LICENSE](LICENSE).
+
+## Créditos
+
+- [DINOv2](https://github.com/facebookresearch/dinov2), Meta AI Research;
+- [OpenCV SIFT](https://docs.opencv.org/4.x/d7/d60/classcv_1_1SIFT.html);
+- [PyTorch](https://pytorch.org/) e [scikit-learn](https://scikit-learn.org/).
+
+---
+
+Feito para aproximar inspeção térmica, engenharia de atributos e aprendizado de máquina em um fluxo que dá para entender, medir e melhorar. 🔥
