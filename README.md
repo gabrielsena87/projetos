@@ -1,6 +1,8 @@
-# Classificação de Equipamentos Elétricos por Imagens Térmicas
+# Thermal Vision AI: Classificação de Equipamentos Elétricos por Imagens Térmicas
 
 Pipeline de visão computacional para classificar cinco tipos de equipamentos elétricos a partir de imagens térmicas. O projeto combina embeddings visuais do DINOv2, descritores locais SIFT e um ensemble de classificadores tradicionais do scikit-learn.
+
+O fluxo atual usa o DINOv2 `dinov2_vitb14` como extrator profundo e concatena seu embedding com o descritor SIFT. O modelo salvo é um `StackingClassifier` formado por KNN, Random Forest, SVM e regressão logística.
 
 ## Classes
 
@@ -18,9 +20,9 @@ O dataset utilizado contém estas classes:
 2. Verifica a integridade das imagens e ignora arquivos corrompidos.
 3. Normaliza as imagens para RGB e cria `workspace/cleaned/metadata.csv`.
 4. Extrai características visuais:
-   - DINOv2 `dinov2_vitb14`: embedding de 768 dimensões.
-   - SIFT: descritor médio de 128 dimensões.
-   - Vetor híbrido final: 896 dimensões.
+  - DINOv2 `dinov2_vitb14`: embedding de 768 dimensões.
+  - SIFT: descritor médio de 128 dimensões.
+  - Vetor híbrido final: 896 dimensões.
 5. Padroniza os atributos e remove atributos sem variação.
 6. Seleciona os melhores atributos com `SelectKBest` e informação mútua.
 7. Usa PCA para preservar a variância mais relevante.
@@ -35,6 +37,7 @@ O dataset utilizado contém estas classes:
 - GPU NVIDIA recomendada para acelerar o DINOv2
 - Driver NVIDIA instalado
 - Dataset organizado em subpastas por classe
+- Aproximadamente 5 GB livres para dependências, cache e artefatos
 
 A CPU também pode executar o pipeline, mas a extração de embeddings será significativamente mais lenta.
 
@@ -112,7 +115,7 @@ Para visualizar e salvar os logs ao mesmo tempo:
 .\.venv\Scripts\python.exe -u .\VIT.py 2>&1 | Tee-Object -FilePath .\pipeline.log
 ```
 
-O primeiro carregamento do DINOv2 pode baixar o backbone e armazená-lo no cache local do Torch Hub. Nas próximas execuções, o cache será reutilizado.
+O primeiro carregamento do DINOv2 pode baixar o backbone e armazená-lo no cache local do Torch Hub. Nas próximas execuções, o cache será reutilizado. É necessário acesso à internet na primeira execução, salvo quando o modelo já estiver disponível no cache.
 
 ## Avisos esperados
 
@@ -125,7 +128,41 @@ UserWarning: xFormers is not available
 
 O aviso sobre `xFormers` significa apenas que algumas otimizações de velocidade e memória não estão disponíveis. O DINOv2 continua funcional.
 
-Se o Windows apresentar `WinError 1455` durante a validação cruzada, altere `n_jobs=-1` para `n_jobs=1` nas chamadas de `cross_validate` e `cross_val_predict` para limitar o uso de processos e memória virtual.
+Se o Windows apresentar `WinError 1455` durante a validação cruzada, mantenha `n_jobs=1` nas chamadas de `cross_validate` e `cross_val_predict`. O código atual já usa esse valor para limitar o uso de processos e memória virtual.
+
+## Fine-tuning do DINOv2
+
+O módulo `vit_dinov2.py` também oferece treinamento supervisionado. O `ViTTrainer` faz um split estratificado de 80/20, aplica augmentação no treino e salva o melhor checkpoint em `workspace/models/dinov2_best.pt`.
+
+### Fine-tuning completo
+
+```python
+import pandas as pd
+from vit_dinov2 import DINOv2Classifier, ViTTrainer
+
+metadata = pd.read_csv("workspace/cleaned/metadata.csv")
+classes = sorted(metadata["label"].unique())
+label_to_idx = {label: index for index, label in enumerate(classes)}
+
+model = DINOv2Classifier(
+  variant="dinov2_vitb14",
+  num_classes=len(classes),
+  freeze_backbone=False,
+)
+
+trainer = ViTTrainer(
+  model=model,
+  metadata=metadata,
+  label_to_idx=label_to_idx,
+  epochs=20,
+  batch_size=32,
+  lr=1e-4,
+  save_path="workspace/models",
+)
+history = trainer.train()
+```
+
+Para linear probing, use `freeze_backbone=True`. Esse checkpoint é separado do `hybrid_stacking_model.joblib`; o `Predictor` documentado nesta página usa o pipeline híbrido salvo.
 
 ## Artefatos gerados
 
@@ -154,7 +191,8 @@ Se o Windows apresentar `WinError 1455` durante a validação cruzada, altere `n
 - `pca_results.csv`: comparação das variâncias do PCA.
 - `confusion_matrix.png`: matriz de confusão.
 - `explained_variance.png`: variância acumulada do PCA.
-- `prediction_6_classes_novo_modelo.png`: painel com seis imagens classificadas.
+- `dashboard.html` e `dashboard.png`: painel consolidado dos resultados.
+- `prediction_*.png`: gráficos gerados para imagens classificadas.
 
 ## Resultado de referência
 
@@ -190,6 +228,16 @@ Também é possível usar o script de teste diretamente no terminal:
 .\.venv\Scripts\python.exe .\testar_predictor.py "caminho\para\imagem.jpg"
 ```
 
+O script aceita opções para escolher a pasta do modelo, salvar o gráfico em outro caminho e abrir a janela da imagem:
+
+```powershell
+.\.venv\Scripts\python.exe .\testar_predictor.py `
+  "caminho\para\imagem.jpg" `
+  --models-dir workspace/models `
+  --save workspace/reports/prediction_{stem}.png `
+  --show
+```
+
 Se o caminho não for informado, o script solicitará a imagem interativamente:
 
 ```powershell
@@ -198,11 +246,16 @@ Se o caminho não for informado, o script solicitará a imagem interativamente:
 
 A imagem deve ser acessível pelo caminho informado e estar em um formato suportado pelo Pillow.
 
+### Cache de features
+
+Se o backbone ou a implementação da extração mudar, remova `workspace/features/X.npy` e `workspace/features/y.npy` antes de treinar novamente. Caso contrário, o pipeline reutilizará o cache existente, mesmo que ele tenha sido gerado com outra configuração.
+
 ## Estrutura principal
 
 ```text
 VIT.py                 Pipeline principal e classificação
 vit_dinov2.py          Backbone DINOv2 e extração de embeddings
+testar_predictor.py    Exemplo de inferência e geração de gráfico
 teste.py               Utilitário local de leitura de artefatos
 workspace/             Cache, modelos e relatórios gerados
 ```

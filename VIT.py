@@ -10,11 +10,15 @@ import os
 import zipfile
 import logging
 import json
+import joblib
 from pathlib import Path
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Tuple, List, Dict, Any, Optional, Union
+from typing import TYPE_CHECKING, Tuple, List, Dict, Any, Optional, Union
 from vit_dinov2 import patch_feature_extractor
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 import importlib
 
@@ -34,7 +38,6 @@ except ImportError as exc:
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
-import teste
 
 import torch
 import torch.nn as nn
@@ -226,7 +229,7 @@ class DataManager:
             zip_ref.extract_all(destination)
         logger.info("Extração concluída com sucesso.")
 
-    def clean_and_organize(self) -> pd.DataFrame:
+    def clean_and_organize(self) -> "DataFrame":
         """Limpa imagens corrompidas e gera o metadado relacional estruturado."""
         logger.info("Verificando integridade das imagens...")
         metadata = []
@@ -238,19 +241,19 @@ class DataManager:
         )
 
         # Resolve o dataset root caso o ZIP tenha criado uma subpasta extra
-        dataset_root = None
+        dataset_root: Optional[Path] = None
         for root, dirs, files in os.walk(source_dir):
             if any(f.lower().endswith(('.jpg', '.png', '.jpeg')) for f in files):
                 dataset_root = Path(root).parent
                 break
                  
-        if not dataset_root:
+        if dataset_root is None:
             dataset_root = source_dir
 
         class_dirs = [d for d in dataset_root.iterdir() if d.is_dir()]
         class_names = sorted([d.name for d in class_dirs])
         
-        teste.dump(class_names, self.cfg.models_dir / "class_names.joblib")
+        joblib.dump(class_names, self.cfg.models_dir / "class_names.joblib")
         logger.info(f"Classes identificadas automaticamente: {class_names}")
 
         for cls_name in class_names:
@@ -353,7 +356,7 @@ class FeatureExtractor:
             logger.error(f"Erro durante extração da imagem {img_path}: {e}")
             return np.zeros(1128)
 
-    def process_dataset(self, metadata: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def process_dataset(self, metadata: "DataFrame") -> Tuple[np.ndarray, np.ndarray]:
         """Itera o dataset e salva os blobs multidimensionais."""
         logger.info("Processamento de Features em lote iniciado...")
         X, y = [], []
@@ -512,7 +515,7 @@ class ModelEvaluator:
         logger.info("Executando K-Fold Validação Estratificada em todo o Pipeline...")
         
         scoring = ['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']
-        cv_results = cross_validate(pipeline, X, y_enc, cv=self.cv, scoring=scoring, n_jobs=-1)
+        cv_results = cross_validate(pipeline, X, y_enc, cv=self.cv, scoring=scoring, n_jobs=1)
         
         pd.DataFrame(cv_results).to_csv(self.cfg.reports_dir / "cv_results.csv", index=False)
         
@@ -520,7 +523,7 @@ class ModelEvaluator:
         logger.info(f"[+] Acurácia Pipeline Média: {mean_acc:.4f}")
         
         # Computando Matriz e Métricas Estáticas Globalizadas
-        y_pred = cross_val_predict(pipeline, X, y_enc, cv=self.cv, n_jobs=-1)
+        y_pred = cross_val_predict(pipeline, X, y_enc, cv=self.cv, n_jobs=1)
         class_names = label_encoder.classes_
         
         acc = accuracy_score(y_enc, y_pred)
@@ -544,7 +547,7 @@ class ModelEvaluator:
         # Consolidação do treinamento para Produção (Fit final com todos os dados)
         logger.info("Ajustando Pesos Finais no Dataset Completo...")
         pipeline.fit(X, y_enc)
-        teste.dump(pipeline, self.cfg.models_dir / "hybrid_stacking_model.joblib")
+        joblib.dump(pipeline, self.cfg.models_dir / "hybrid_stacking_model.joblib")
         
         # Registro Técnico
         config_dict = {
@@ -569,8 +572,8 @@ class Predictor:
     def __init__(self, models_dir: str = "workspace/models"):
         self.models_dir = Path(models_dir)
         
-        self.pipeline = teste.load(self.models_dir / "hybrid_stacking_model.joblib")
-        self.class_names = teste.load(self.models_dir / "class_names.joblib")
+        self.pipeline = joblib.load(self.models_dir / "hybrid_stacking_model.joblib")
+        self.class_names = joblib.load(self.models_dir / "class_names.joblib")
         
         with open(self.models_dir / "pipeline_config.json", 'r') as f:
             config_dict = json.load(f)
@@ -581,6 +584,7 @@ class Predictor:
             imagenet_std=config_dict['imagenet_std']
         )
         self.extractor = FeatureExtractor(cfg)
+        patch_feature_extractor(self.extractor, variant="dinov2_vitb14")
 
     def predict(self, img_path: str) -> Tuple[str, float]:
         """Realiza classificação zero-shot com os vetores do novo Input."""
