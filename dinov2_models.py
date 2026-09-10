@@ -1,5 +1,5 @@
 """
-vit_dinov2.py
+dinov2_models.py
 
 Módulo de ViT treinável baseado em DINOv2 (Meta AI), projetado para ser
 plugado no hybrid_fusion_pipeline.py como substituto ou complemento ao
@@ -272,7 +272,7 @@ class ViTTrainer:
         batch_size: int = 32,
         lr: float = 1e-4,
         weight_decay: float = 1e-2,
-        save_path: Union[str, Path] = "workspace/models",
+        save_path: Union[str, Path] = "thermal_vision_workspace/models",
         device: Optional[torch.device] = None,
     ):
         self.model = model
@@ -517,7 +517,7 @@ if __name__ == "__main__":
     print(f"Embedding shape: {emb.shape}")   # (768,)
 
     # ── 2. Fine-tuning completo ───────────────────────────────────────────────
-    metadata = pd.read_csv("workspace/cleaned/metadata.csv")
+    metadata = pd.read_csv("thermal_vision_workspace/cleaned/metadata.csv")
     classes = sorted(metadata["label"].unique())
     label_to_idx = {c: i for i, c in enumerate(classes)}
 
@@ -533,11 +533,11 @@ if __name__ == "__main__":
         epochs=20,
         batch_size=32,
         lr=1e-4,
-        save_path="workspace/models",
+        save_path="thermal_vision_workspace/models",
     )
     history = trainer.train()
-    # Salva o melhor checkpoint em workspace/models/dinov2_best.pt
-    model = load_finetuned_vit("workspace/models/dinov2_best.pt")
+    # Salva o melhor checkpoint em thermal_vision_workspace/models/dinov2_best.pt
+    model = load_finetuned_vit("thermal_vision_workspace/models/dinov2_best.pt")
     # modelo em eval() automaticamente
 
     # ── 3. Linear probing (backbone congelado) ────────────────────────────────
@@ -550,7 +550,7 @@ if __name__ == "__main__":
     # history_lp = trainer_lp.train()
 
     # ── 4. Patch direto no pipeline existente ────────────────────────────────
-    # from VIT import FeatureExtractor, Config
+    # from thermal_vision_pipeline import FeatureExtractor, Config
     # cfg = Config()
     # extractor_pipeline = FeatureExtractor(cfg)
     # patch_feature_extractor(extractor_pipeline, variant="dinov2_vitb14")

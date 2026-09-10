@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from VIT import Predictor
+from thermal_vision_pipeline import Predictor
 
 
 def main() -> None:
@@ -20,13 +20,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--models-dir",
-        default="workspace/models",
+        default="thermal_vision_workspace/models",
         help="Pasta com os arquivos do modelo salvo.",
     )
     parser.add_argument(
         "--save",
-        default="workspace/reports/prediction_{stem}.png",
-        help="Caminho do gráfico; por padrão usa workspace/reports/prediction_<imagem>.png.",
+        default="thermal_vision_workspace/reports/prediction_{stem}.png",
+        help="Caminho do gráfico; por padrão usa thermal_vision_workspace/reports/prediction_<imagem>.png.",
     )
     parser.add_argument(
         "--show",

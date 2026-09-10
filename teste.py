@@ -1,6 +1,6 @@
 import joblib
 
-caminho = r"D:\hd_central\projetos\workspace\models\hybrid_stacking_model.joblib"
+caminho = r"D:\hd_central\projetos\thermal_vision_workspace\models\hybrid_stacking_model.joblib"
 
 modelo = joblib.load(caminho)
 
@@ -10,7 +10,7 @@ print(modelo)
 import joblib
 
 classes = joblib.load(
-    r"D:\hd_central\projetos\workspace\models\class_names.joblib"
+    r"D:\hd_central\projetos\thermal_vision_workspace\models\class_names.joblib"
 )
 
 print(classes)

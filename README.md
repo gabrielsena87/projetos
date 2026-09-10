@@ -87,14 +87,14 @@ Classe prevista + probabilidade + relatórios
 
 ```text
 .
-├── VIT.py                         # Pipeline principal e classe Predictor
-├── vit_dinov2.py                  # DINOv2, embeddings e fine-tuning
+├── thermal_vision_pipeline.py     # Pipeline principal e classe Predictor
+├── dinov2_models.py               # DINOv2, embeddings e fine-tuning
 ├── testar_predictor.py            # Inferência de uma imagem
 ├── testar_6_imagens.py            # Geração de painel de inferência
 ├── relatorio.py                   # Leitura de artefatos do modelo
 ├── teste.py                       # Utilitário local de inspeção
-├── Infrared Power Equipment Dataset/  # Dataset organizado por classe
-├── workspace/
+├── thermal_equipment_dataset/     # Dataset organizado por classe
+├── thermal_vision_workspace/
 │   ├── cleaned/                   # Imagens válidas e metadata.csv
 │   ├── features/                  # X.npy e y.npy
 │   ├── models/                    # Modelo, classes e configuração
@@ -156,16 +156,16 @@ O driver NVIDIA é suficiente para as wheels oficiais do PyTorch; não é obriga
 
 ## Dataset 🗂️
 
-O caminho padrão está configurado em `Config.dataset_dir`, no arquivo `VIT.py`:
+O caminho padrão está configurado em `Config.dataset_dir`, no arquivo `thermal_vision_pipeline.py`:
 
 ```python
-dataset_dir: Path = Path(r"D:\hd_central\projetos\Infrared Power Equipment Dataset")
+dataset_dir: Path = Path(r"D:\hd_central\projetos\thermal_equipment_dataset")
 ```
 
 Organize as imagens desta forma:
 
 ```text
-Infrared Power Equipment Dataset/
+thermal_equipment_dataset/
 ├── Circuit Breakers/
 ├── Disconnectors/
 ├── Power Transformers/
@@ -173,7 +173,7 @@ Infrared Power Equipment Dataset/
 └── Wave Traps/
 ```
 
-São aceitos arquivos `.jpg`, `.jpeg` e `.png`. Cada imagem é verificada, convertida para RGB e copiada para `workspace/cleaned/` antes da extração.
+São aceitos arquivos `.jpg`, `.jpeg` e `.png`. Cada imagem é verificada, convertida para RGB e copiada para `thermal_vision_workspace/cleaned/` antes da extração.
 
 ## Uso
 
@@ -181,13 +181,13 @@ São aceitos arquivos `.jpg`, `.jpeg` e `.png`. Cada imagem é verificada, conve
 
 ```powershell
 Set-Location "D:\hd_central\projetos"
-.\.venv\Scripts\python.exe -u .\VIT.py
+.\.venv\Scripts\python.exe -u .\thermal_vision_pipeline.py
 ```
 
 Para acompanhar os logs e salvar uma cópia:
 
 ```powershell
-.\.venv\Scripts\python.exe -u .\VIT.py 2>&1 |
+.\.venv\Scripts\python.exe -u .\thermal_vision_pipeline.py 2>&1 |
   Tee-Object -FilePath .\pipeline.log
 ```
 
@@ -196,9 +196,9 @@ O processo valida o dataset, extrai as features, otimiza `SelectKBest` e PCA, tr
 ### Inferir uma imagem em Python
 
 ```python
-from VIT import Predictor
+from thermal_vision_pipeline import Predictor
 
-predictor = Predictor("workspace/models")
+predictor = Predictor("thermal_vision_workspace/models")
 classe, probabilidade = predictor.predict("caminho/para/imagem.jpg")
 
 print(f"Classe: {classe}")
@@ -210,21 +210,21 @@ print(f"Confiança: {probabilidade:.2%}")
 ```powershell
 .\.venv\Scripts\python.exe .\testar_predictor.py `
   "caminho\para\imagem.jpg" `
-  --models-dir workspace/models `
-  --save workspace/reports/prediction_{stem}.png
+  --models-dir thermal_vision_workspace/models `
+  --save thermal_vision_workspace/reports/prediction_{stem}.png
 ```
 
 Use `--show` para abrir o gráfico após a classificação. Sem o caminho da imagem, o script solicita o valor de forma interativa.
 
 ### Fine-tuning supervisionado
 
-O módulo `vit_dinov2.py` possui `DINOv2Classifier` e `ViTTrainer` para fine-tuning completo ou linear probing. O treinamento usa split estratificado 80/20 e salva o melhor checkpoint em `workspace/models/dinov2_best.pt`.
+O módulo `dinov2_models.py` possui `DINOv2Classifier` e `ViTTrainer` para fine-tuning completo ou linear probing. O treinamento usa split estratificado 80/20 e salva o melhor checkpoint em `thermal_vision_workspace/models/dinov2_best.pt`.
 
 ```python
 import pandas as pd
-from vit_dinov2 import DINOv2Classifier, ViTTrainer
+from dinov2_models import DINOv2Classifier, ViTTrainer
 
-metadata = pd.read_csv("workspace/cleaned/metadata.csv")
+metadata = pd.read_csv("thermal_vision_workspace/cleaned/metadata.csv")
 classes = sorted(metadata["label"].unique())
 label_to_idx = {label: index for index, label in enumerate(classes)}
 
@@ -241,7 +241,7 @@ trainer = ViTTrainer(
     epochs=20,
     batch_size=32,
     lr=1e-4,
-    save_path="workspace/models",
+    save_path="thermal_vision_workspace/models",
 )
 history = trainer.train()
 ```
@@ -252,20 +252,20 @@ O checkpoint de fine-tuning é independente do `hybrid_stacking_model.joblib` us
 
 | Caminho | Conteúdo |
 | --- | --- |
-| `workspace/cleaned/metadata.csv` | Caminhos das imagens válidas e seus rótulos |
-| `workspace/features/X.npy` | Matriz de features híbridas |
-| `workspace/features/y.npy` | Rótulos correspondentes |
-| `workspace/models/hybrid_stacking_model.joblib` | Pipeline treinado e persistido |
-| `workspace/models/class_names.joblib` | Ordem das classes usadas na inferência |
-| `workspace/models/pipeline_config.json` | Dimensões e normalização da entrada |
-| `workspace/reports/classification_report.csv` | Precisão, recall e F1 por classe |
-| `workspace/reports/cv_results.csv` | Resultados das divisões da validação cruzada |
-| `workspace/reports/confusion_matrix.png` | Matriz de confusão |
-| `workspace/reports/dashboard.html` | Painel consolidado dos resultados |
+| `thermal_vision_workspace/cleaned/metadata.csv` | Caminhos das imagens válidas e seus rótulos |
+| `thermal_vision_workspace/features/X.npy` | Matriz de features híbridas |
+| `thermal_vision_workspace/features/y.npy` | Rótulos correspondentes |
+| `thermal_vision_workspace/models/hybrid_stacking_model.joblib` | Pipeline treinado e persistido |
+| `thermal_vision_workspace/models/class_names.joblib` | Ordem das classes usadas na inferência |
+| `thermal_vision_workspace/models/pipeline_config.json` | Dimensões e normalização da entrada |
+| `thermal_vision_workspace/reports/classification_report.csv` | Precisão, recall e F1 por classe |
+| `thermal_vision_workspace/reports/cv_results.csv` | Resultados das divisões da validação cruzada |
+| `thermal_vision_workspace/reports/confusion_matrix.png` | Matriz de confusão |
+| `thermal_vision_workspace/reports/dashboard.html` | Painel consolidado dos resultados |
 
 ### Cache de features
 
-Se o backbone ou a implementação da extração mudar, remova `workspace/features/X.npy` e `workspace/features/y.npy` antes de treinar novamente. O pipeline reutiliza esses arquivos quando eles existem.
+Se o backbone ou a implementação da extração mudar, remova `thermal_vision_workspace/features/X.npy` e `thermal_vision_workspace/features/y.npy` antes de treinar novamente. O pipeline reutiliza esses arquivos quando eles existem.
 
 ## Troubleshooting 🔧
 
@@ -285,20 +285,6 @@ O pipeline já usa `n_jobs=1` na validação cruzada para reduzir o consumo de m
 
 `UserWarning: xFormers is not available` indica apenas que certas otimizações não estão instaladas. O DINOv2 continua funcional.
 
-## Contribuição 🤝
-
-Contribuições são bem-vindas, especialmente melhorias de reprodutibilidade, avaliação e desempenho.
-
-1. Faça um fork e crie uma branch descritiva:
-
-   ```powershell
-   git checkout -b feature/nova-avaliacao
-   ```
-
-2. Faça uma alteração pequena e documente decisões relevantes.
-3. Execute os testes ou validações disponíveis antes de abrir o PR.
-4. Atualize o README quando mudar comandos, artefatos ou requisitos.
-5. Abra um Pull Request com contexto, resultados antes/depois e limitações conhecidas.
 
 Exemplos de áreas para evolução:
 

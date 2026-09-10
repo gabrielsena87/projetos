@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from VIT import Predictor
+from thermal_vision_pipeline import Predictor
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
@@ -44,17 +44,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--dataset-dir",
-        default="Infrared Power Equipment Dataset",
+        default="thermal_equipment_dataset",
         help="Pasta raiz do dataset organizada por classe.",
     )
     parser.add_argument(
         "--models-dir",
-        default="workspace/models",
+        default="thermal_vision_workspace/models",
         help="Pasta com os arquivos do modelo salvo.",
     )
     parser.add_argument(
         "--save",
-        default="workspace/reports/prediction_6_classes.png",
+        default="thermal_vision_workspace/reports/prediction_6_classes.png",
         help="Caminho do painel PNG gerado.",
     )
     parser.add_argument(

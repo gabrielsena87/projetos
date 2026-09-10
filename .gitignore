@@ -7,11 +7,11 @@ __pycache__/
 *.log
 
 # Artefatos gerados pelo pipeline
-workspace/features/
-workspace/cleaned/
-workspace/extracted/
-workspace/raw/
-workspace/models/dinov2_best.pt
+thermal_vision_workspace/features/
+thermal_vision_workspace/cleaned/
+thermal_vision_workspace/extracted/
+thermal_vision_workspace/raw/
+thermal_vision_workspace/models/dinov2_best.pt
 
 # Arquivos temporarios
 .DS_Store

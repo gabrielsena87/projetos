@@ -15,7 +15,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Tuple, List, Dict, Any, Optional, Union
-from vit_dinov2 import patch_feature_extractor
+from dinov2_models import patch_feature_extractor
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -74,7 +74,7 @@ except ImportError as exc:
 class Config:
     """Configurações e hiperparâmetros globais do pipeline."""
     # Diretórios
-    workspace_dir: Path = Path("workspace")
+    workspace_dir: Path = Path("thermal_vision_workspace")
     raw_dir: Path = workspace_dir / "raw"
     extracted_dir: Path = workspace_dir / "extracted"
     cleaned_dir: Path = workspace_dir / "cleaned"
@@ -83,7 +83,7 @@ class Config:
     reports_dir: Path = workspace_dir / "reports"
     
     # Arquivos
-    dataset_dir: Path = Path(r"D:\hd_central\projetos\Infrared Power Equipment Dataset")
+    dataset_dir: Path = Path(r"D:\hd_central\projetos\thermal_equipment_dataset")
     dataset_zip: str = "dataset.zip"
     metadata_csv: Path = cleaned_dir / "metadata.csv"
     X_npy: Path = features_dir / "X.npy"
@@ -569,7 +569,7 @@ class ModelEvaluator:
 class Predictor:
     """Classe encapsulada para carga do pipeline e consumo de inferências live."""
     
-    def __init__(self, models_dir: str = "workspace/models"):
+    def __init__(self, models_dir: str = "thermal_vision_workspace/models"):
         self.models_dir = Path(models_dir)
         
         self.pipeline = joblib.load(self.models_dir / "hybrid_stacking_model.joblib")
